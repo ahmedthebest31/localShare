@@ -6,9 +6,8 @@ import requests
 import socket 
 import qrcode 
 import io 
-import functools # <-- NEEDED FOR THE FIX
+import functools 
 
-# NEW: Import our server logic from the new file
 from server_handler import ServerThread, WorkerSignals
 
 from PySide6.QtWidgets import (
@@ -104,7 +103,7 @@ class AboutDialog(QDialog):
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
-# --- 4. Main Application Window (Now imports server) ---
+# --- 4. Main Application Window (MODIFIED: connect_signals, start_server) ---
 
 class LocalShareApp(QMainWindow):
     def __init__(self):
@@ -128,7 +127,7 @@ class LocalShareApp(QMainWindow):
         self.load_themes_to_menu()
     
     def setup_menubar(self):
-        # (Unchanged from previous step)
+        # (Unchanged)
         menubar = self.menuBar()
         menubar.clear()
         file_menu = menubar.addMenu(tr("menu_file"))
@@ -199,7 +198,7 @@ class LocalShareApp(QMainWindow):
             QMessageBox.critical(self, tr("dialog_title_error"), f"Could not apply theme: {e}")
 
     def setup_ui(self):
-        # (Unchanged from previous step)
+        # (Unchanged)
         """Sets up the UI for localShare with proper accessibility."""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -268,7 +267,7 @@ class LocalShareApp(QMainWindow):
         main_layout.addLayout(right_layout, 3) 
 
     def connect_signals(self):
-        # (Unchanged from previous step)
+        # (Unchanged)
         """Connects all UI signals to their functions."""
         self.password_checkbox.toggled.connect(self.toggle_password_fields)
         self.start_server_button.clicked.connect(self.start_server)
@@ -284,7 +283,7 @@ class LocalShareApp(QMainWindow):
             self.password_edit.setFocus()
         
     def retranslate_ui(self):
-        # (Unchanged from previous step)
+        # (Unchanged)
         self.setWindowTitle(tr("app_name"))
         self.setup_menubar() 
         self.start_server_button.setText(tr("start_server_button"))
@@ -302,9 +301,10 @@ class LocalShareApp(QMainWindow):
         self.select_file_action.setText(tr("menu_file_select_file"))
         self.select_folder_action.setText(tr("menu_file_select_folder"))
 
-    # --- Server Control Functions (Modified to use translated logs) ---
+    # --- Server Control Functions (MODIFIED: start_server) ---
 
     def select_folder(self):
+        # (Unchanged)
         """Opens a dialog to select a folder to share."""
         path = QFileDialog.getExistingDirectory(self, tr("menu_file_select_folder"))
         if path:
@@ -319,89 +319,102 @@ class LocalShareApp(QMainWindow):
             return
 
         port = self.port_spinbox.value()
+        
+        # NEW: Get password from UI
+        password = None
+        if self.password_checkbox.isChecked():
+            password = self.password_edit.text()
+            if not password:
+                QMessageBox.warning(self, tr("dialog_title_error"), tr("msg_password_empty"))
+                return
+            self.log(tr("log_password_enabled"))
+        # ---
+        
         self.log(tr("log_server_starting", port))
 
         self.set_ui_state(running=True)
         self.status_label.setText(tr("status_starting"))
 
-        self.server_thread = ServerThread(port, self.share_path)
+        # NEW: Pass password to the thread
+        self.server_thread = ServerThread(port, self.share_path, password)
+        
         self.server_thread.signals.server_started.connect(self.on_server_started)
-        self.server_thread.signals.log_message.connect(self.log) # Pass log messages directly
+        self.server_thread.signals.log_message.connect(self.log) 
         self.server_thread.signals.server_stopped.connect(self.on_server_stopped)
         self.server_thread.start()
 
     def stop_server(self):
+        # (Unchanged)
         """Stops the web server thread."""
         if self.server_thread:
-            # log_server_stopping is now emitted from the thread
             self.server_thread.stop()
         
     def on_server_started(self, ip, port):
+        # (Unchanged)
         """Callback when the server thread confirms it has started."""
         url = f"http://{ip}:{port}"
         self.log(tr("log_server_started", url))
-        
         self.status_label.setText(tr("status_running", url))
         self.url_edit.setText(url)
-        
         self.generate_qr_pixmap(url)
 
     def on_server_stopped(self):
+        # (Unchanged)
         """Callback when the server thread confirms it has stopped."""
         self.log(tr("log_server_stopped"))
         self.set_ui_state(running=False)
         self.server_thread = None
 
     def log(self, message):
+        # (Unchanged)
         """Appends a message to the activity log."""
-        # Check if the message is a key or a raw string
-        if message.startswith("[Access]") or message.startswith("[Error]"):
+        if message.startswith("[Access]") or message.startswith("[Error]") or message.startswith("[Auth]"):
             self_translated_message = message
         else:
-            self_translated_message = tr(message) # Translate log keys
+            self_translated_message = tr(message) 
         
         self.log_display.appendPlainText(self_translated_message)
     
     def copy_url(self):
+        # (Unchanged)
         """Copies the sharing URL to the clipboard."""
         if self.url_edit.text():
             clipboard = QGuiApplication.clipboard()
             clipboard.setText(self.url_edit.text())
-            self.log("log_url_copied") # Use the key
+            self.log("log_url_copied") 
 
     def set_ui_state(self, running):
+        # (Unchanged)
         """Enables/disables UI elements based on server state."""
         self.start_server_button.setEnabled(not running)
         self.stop_server_button.setEnabled(running)
-        
         self.port_spinbox.setEnabled(not running)
         self.password_checkbox.setEnabled(not running)
-        self.password_edit.setEnabled(not running)
+        self.password_edit.setEnabled(not running and self.password_checkbox.isChecked()) # Keep disabled
         self.allow_upload_checkbox.setEnabled(not running)
         self.rename_uploads_checkbox.setEnabled(not running)
-        self.select_file_action.setEnabled(not running and False) # Keep disabled for now
+        self.select_file_action.setEnabled(not running and False) 
         self.select_folder_action.setEnabled(not running)
         
         if not running:
             self.status_label.setText(tr("status_stopped"))
             self.url_edit.clear()
             self.qr_code_label.setText(tr("qr_code_placeholder"))
-            self.qr_code_label.setPixmap(QPixmap()) # Clear the pixmap
+            self.qr_code_label.setPixmap(QPixmap()) 
             self.start_server_button.setEnabled(self.share_path is not None)
 
     def generate_qr_pixmap(self, text):
+        # (Unchanged)
         """Generates a QPixmap from the given text."""
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=4)
             qr.add_data(text)
             qr.make(fit=True)
             img = qr.make_image(fill_color="black", back_color="white")
-            
             buffer = io.BytesIO()
             img.save(buffer, "PNG")
             qt_image = QImage.fromData(buffer.getvalue(), "PNG")
             pixmap = QPixmap.fromImage(qt_image)
-            
             self.qr_code_label.setPixmap(pixmap.scaled(
                 self.qr_code_label.size(),
                 Qt.AspectRatioMode.KeepAspectRatio,
