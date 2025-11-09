@@ -1,8 +1,9 @@
 {
     "lang_name": "English",
     "app_name": "localShare",
-    "welcome_message": "Welcome to localShare!",
     "menu_file": "&File",
+    "menu_file_select_file": "Share &File...",
+    "menu_file_select_folder": "Share &Folder...",
     "menu_file_exit": "&Exit",
     "menu_settings": "&Settings",
     "menu_settings_themes": "&Themes",
@@ -28,5 +29,17 @@
     "msg_no_update": "You are using the latest version.",
     "msg_network_error": "Network error: {0}",
     "msg_update_parse_error": "Could not parse update information.",
-    "msg_requests_missing": "The 'requests' library is missing. Cannot check for updates."
+    "msg_requests_missing": "The 'requests' library is missing. Cannot check for updates.",
+    "start_server_button": "Start Server",
+    "stop_server_button": "Stop Server",
+    "port_label": "Port:",
+    "password_label": "Password (Optional):",
+    "allow_upload_checkbox": "Allow Uploads",
+    "rename_uploads_checkbox": "Rename uploads with device name",
+    "log_label": "Activity Log:",
+    "status_stopped": "Status: Stopped",
+    "status_running": "Status: Running at {0}",
+    "url_label": "URL:",
+    "copy_url_button": "Copy",
+    "qr_code_placeholder": "QR Code will appear here when server is running"
 }
