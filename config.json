@@ -1,0 +1,6 @@
+{
+    "language": "en",
+    "theme": "dark_theme.qss",
+    "port": 8000,
+    "allow_upload": false
+}
