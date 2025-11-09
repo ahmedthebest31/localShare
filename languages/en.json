@@ -2,7 +2,7 @@
     "lang_name": "English",
     "app_name": "localShare",
     "menu_file": "&File",
-    "menu_file_select_file": "Share &File...",
+    "menu_file_select_file": "Share &File... (Soon)",
     "menu_file_select_folder": "Share &Folder...",
     "menu_file_exit": "&Exit",
     "menu_settings": "&Settings",
@@ -30,16 +30,34 @@
     "msg_network_error": "Network error: {0}",
     "msg_update_parse_error": "Could not parse update information.",
     "msg_requests_missing": "The 'requests' library is missing. Cannot check for updates.",
+    
     "start_server_button": "Start Server",
     "stop_server_button": "Stop Server",
+    
     "port_label": "Port:",
-    "password_label": "Password (Optional):",
-    "allow_upload_checkbox": "Allow Uploads",
-    "rename_uploads_checkbox": "Rename uploads with device name",
+    
+    "password_checkbox": "Use Password (Soon)",
+    "password_label": "Password:",
+    
+    "allow_upload_checkbox": "Allow Uploads (Soon)",
+    "rename_uploads_checkbox": "Rename uploads (Soon)",
+    
     "log_label": "Activity Log:",
     "status_stopped": "Status: Stopped",
+    "status_starting": "Status: Starting...",
     "status_running": "Status: Running at {0}",
+    
     "url_label": "URL:",
     "copy_url_button": "Copy",
-    "qr_code_placeholder": "QR Code will appear here when server is running"
+    "log_url_copied": "[Info] URL copied to clipboard.",
+    
+    "qr_code_placeholder": "QR Code will appear here",
+    "qr_code_desc": "QR code to access the URL {0}",
+
+    "msg_select_folder_first": "Please select a folder to share first (File > Share Folder).",
+    "log_share_folder_selected": "[Info] Selected folder: {0}",
+    "log_server_starting": "[Info] Starting server on port {0}...",
+    "log_server_started": "[Info] Server started successfully at {0}",
+    "log_server_stopping": "[Info] Stopping server...",
+    "log_server_stopped": "[Info] Server stopped."
 }
