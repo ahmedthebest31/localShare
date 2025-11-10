@@ -137,13 +137,14 @@ class WorkerSignals(QObject):
     server_stopped = Signal()
 
 class ServerThread(threading.Thread):
-    def __init__(self, port, share_path, password=None, allow_upload=False, rename_upload=False):
+    def __init__(self, port, share_path, password=None, allow_upload=False, rename_upload=False, max_upload_size=0):
         super().__init__()
         self.port = port
         self.share_path = os.path.abspath(share_path)
         self.password = password
         self.allow_upload = allow_upload
         self.rename_upload = rename_upload
+        self.max_upload_size = max_upload_size
         self.signals = WorkerSignals()
         self.flask_app = self._create_flask_app()
         self.server = None
@@ -154,6 +155,8 @@ class ServerThread(threading.Thread):
         app.config['PASSWORD'] = self.password
         app.config['ALLOW_UPLOAD'] = self.allow_upload
         app.config['RENAME_UPLOAD'] = self.rename_upload
+        if self.max_upload_size > 0:
+            app.config['MAX_CONTENT_LENGTH'] = self.max_upload_size * 1024 * 1024
 
         def get_username_or_auth_response():
             if app.config['PASSWORD']:
@@ -204,7 +207,12 @@ class ServerThread(threading.Thread):
                     else:
                         final_filename = filename
                     
-                    file.save(os.path.join(app.config['SHARE_PATH'], final_filename))
+                    upload_path_abs = os.path.abspath(os.path.join(app.config['SHARE_PATH'], final_filename))
+                    if not upload_path_abs.startswith(os.path.abspath(app.config['SHARE_PATH'])):
+                        self.signals.log_message.emit(f"[Security] Blocked potential directory traversal upload from {user} for filename '{final_filename}'")
+                        abort(403)
+
+                    file.save(upload_path_abs)
                     self.signals.log_message.emit(f"[Upload] Success: '{final_filename}' from {user}")
 
             file_info_list = []
@@ -226,6 +234,13 @@ class ServerThread(threading.Thread):
             user = get_username_or_auth_response()
             if isinstance(user, Response): return user
             
+            share_path_abs = os.path.abspath(app.config['SHARE_PATH'])
+            requested_path_abs = os.path.abspath(os.path.join(share_path_abs, filename))
+
+            if not requested_path_abs.startswith(share_path_abs):
+                self.signals.log_message.emit(f"[Security] Path traversal attempt blocked from {request.remote_addr} for '{filename}'")
+                abort(404)
+
             self.signals.log_message.emit(f"[Access] ({user}) {request.remote_addr} - GET /files/{filename}")
             return send_from_directory(app.config['SHARE_PATH'], filename, as_attachment=False)
             

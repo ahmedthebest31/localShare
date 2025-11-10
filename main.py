@@ -225,6 +225,21 @@ class LocalShareApp(QMainWindow):
         self.password_label.setBuddy(self.password_edit) 
         self.password_label.setVisible(False)
         self.password_edit.setVisible(False)
+
+        self.limit_upload_size_checkbox = QCheckBox()
+        controls_layout.addWidget(self.limit_upload_size_checkbox, 4, 0, 1, 2)
+
+        self.upload_size_limit_label = QLabel()
+        self.upload_size_spinbox = QSpinBox()
+        self.upload_size_spinbox.setRange(1, 1024) # 1MB to 1GB
+        self.upload_size_spinbox.setValue(16) # Default to 16MB
+        self.upload_size_spinbox.setSuffix(" MB")
+        controls_layout.addWidget(self.upload_size_limit_label, 5, 0)
+        controls_layout.addWidget(self.upload_size_spinbox, 5, 1)
+        self.upload_size_limit_label.setBuddy(self.upload_size_spinbox)
+        self.upload_size_limit_label.setVisible(False)
+        self.upload_size_spinbox.setVisible(False)
+
         left_layout.addLayout(controls_layout)
         self.log_label = QLabel()
         left_layout.addWidget(self.log_label)
@@ -263,12 +278,19 @@ class LocalShareApp(QMainWindow):
         self.stop_server_button.clicked.connect(self.stop_server)
         self.select_folder_action.triggered.connect(self.select_folder)
         self.copy_url_button.clicked.connect(self.copy_url)
+        self.limit_upload_size_checkbox.toggled.connect(self.toggle_upload_limit_fields)
 
     def toggle_password_fields(self, checked):
         self.password_label.setVisible(checked)
         self.password_edit.setVisible(checked)
         if checked:
             self.password_edit.setFocus()
+
+    def toggle_upload_limit_fields(self, checked):
+        self.upload_size_limit_label.setVisible(checked)
+        self.upload_size_spinbox.setVisible(checked)
+        if checked:
+            self.upload_size_spinbox.setFocus()
         
     def retranslate_ui(self):
         self.setWindowTitle(tr("app_name"))
@@ -280,6 +302,8 @@ class LocalShareApp(QMainWindow):
         self.password_label.setText(tr("password_label"))
         self.allow_upload_checkbox.setText(tr("allow_upload_checkbox")) 
         self.rename_uploads_checkbox.setText(tr("rename_uploads_checkbox")) 
+        self.limit_upload_size_checkbox.setText(tr("limit_upload_size_checkbox"))
+        self.upload_size_limit_label.setText(tr("upload_size_limit_label"))
         self.log_label.setText(tr("log_label"))
         self.status_label.setText(tr("status_stopped"))
         self.url_label.setText(tr("url_label"))
@@ -316,6 +340,10 @@ class LocalShareApp(QMainWindow):
         rename_upload = self.rename_uploads_checkbox.isChecked()
         if allow_upload:
             self.log(tr("log_uploads_enabled"))
+
+        max_upload_size = 0
+        if self.limit_upload_size_checkbox.isChecked():
+            max_upload_size = self.upload_size_spinbox.value()
         
         self.log(tr("log_server_starting", port))
         self.set_ui_state(running=True)
@@ -326,7 +354,8 @@ class LocalShareApp(QMainWindow):
             self.share_path, 
             password, 
             allow_upload, 
-            rename_upload
+            rename_upload,
+            max_upload_size
         )
         
         self.server_thread.signals.server_started.connect(self.on_server_started)
@@ -378,6 +407,8 @@ class LocalShareApp(QMainWindow):
         self.password_edit.setEnabled(not running and self.password_checkbox.isChecked())
         self.allow_upload_checkbox.setEnabled(not running) 
         self.rename_uploads_checkbox.setEnabled(not running) 
+        self.limit_upload_size_checkbox.setEnabled(not running)
+        self.upload_size_spinbox.setEnabled(not running and self.limit_upload_size_checkbox.isChecked())
         self.select_file_action.setEnabled(not running and False) 
         self.select_folder_action.setEnabled(not running)
         

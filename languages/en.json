@@ -41,6 +41,8 @@
     
     "allow_upload_checkbox": "Allow Uploads",
     "rename_uploads_checkbox": "Rename uploads with device name",
+    "limit_upload_size_checkbox": "Limit upload file size",
+    "upload_size_limit_label": "Size limit (MB):",
     
     "log_label": "Activity Log:",
     "status_stopped": "Status: Stopped",
