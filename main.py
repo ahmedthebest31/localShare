@@ -6,7 +6,7 @@ import requests
 import socket 
 import qrcode 
 import io 
-import functools 
+import functools # <-- *** THE FIX IS HERE ***
 
 from server_handler import ServerThread, WorkerSignals
 
@@ -30,7 +30,6 @@ TRANSLATIONS = {}
 CURRENT_LANG = "en" 
 
 # --- 2. Boilerplate Functions (Unchanged) ---
-
 def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -73,7 +72,6 @@ def tr(key, *args):
         return text 
 
 # --- 3. About Dialog (Unchanged) ---
-
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -103,8 +101,7 @@ class AboutDialog(QDialog):
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
-# --- 4. Main Application Window (MODIFIED: connect_signals, start_server) ---
-
+# --- 4. Main Application Window (Unchanged, but needs the import) ---
 class LocalShareApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -114,13 +111,10 @@ class LocalShareApp(QMainWindow):
         CURRENT_LANG = self.config.get("language", "en")
         
         self.apply_theme(self.config.get("theme", "dark_theme.qss"))
-
         self.setWindowTitle(tr("app_name"))
         self.resize(1000, 700) 
-        
         self.share_path = None 
         self.server_thread = None 
-
         self.setup_ui()
         self.retranslate_ui()
         self.connect_signals() 
@@ -291,8 +285,8 @@ class LocalShareApp(QMainWindow):
         self.port_label.setText(tr("port_label"))
         self.password_checkbox.setText(tr("password_checkbox")) 
         self.password_label.setText(tr("password_label"))
-        self.allow_upload_checkbox.setText(tr("allow_upload_checkbox"))
-        self.rename_uploads_checkbox.setText(tr("rename_uploads_checkbox"))
+        self.allow_upload_checkbox.setText(tr("allow_upload_checkbox")) 
+        self.rename_uploads_checkbox.setText(tr("rename_uploads_checkbox")) 
         self.log_label.setText(tr("log_label"))
         self.status_label.setText(tr("status_stopped"))
         self.url_label.setText(tr("url_label"))
@@ -313,6 +307,7 @@ class LocalShareApp(QMainWindow):
             self.start_server_button.setEnabled(True)
 
     def start_server(self):
+        # (Modified to pass settings)
         """Starts the web server in a new thread."""
         if not self.share_path:
             QMessageBox.warning(self, tr("dialog_title_error"), tr("msg_select_folder_first"))
@@ -320,7 +315,6 @@ class LocalShareApp(QMainWindow):
 
         port = self.port_spinbox.value()
         
-        # NEW: Get password from UI
         password = None
         if self.password_checkbox.isChecked():
             password = self.password_edit.text()
@@ -328,15 +322,23 @@ class LocalShareApp(QMainWindow):
                 QMessageBox.warning(self, tr("dialog_title_error"), tr("msg_password_empty"))
                 return
             self.log(tr("log_password_enabled"))
-        # ---
+        
+        allow_upload = self.allow_upload_checkbox.isChecked()
+        rename_upload = self.rename_uploads_checkbox.isChecked()
+        if allow_upload:
+            self.log(tr("log_uploads_enabled"))
         
         self.log(tr("log_server_starting", port))
-
         self.set_ui_state(running=True)
         self.status_label.setText(tr("status_starting"))
 
-        # NEW: Pass password to the thread
-        self.server_thread = ServerThread(port, self.share_path, password)
+        self.server_thread = ServerThread(
+            port, 
+            self.share_path, 
+            password, 
+            allow_upload, 
+            rename_upload
+        )
         
         self.server_thread.signals.server_started.connect(self.on_server_started)
         self.server_thread.signals.log_message.connect(self.log) 
@@ -368,7 +370,7 @@ class LocalShareApp(QMainWindow):
     def log(self, message):
         # (Unchanged)
         """Appends a message to the activity log."""
-        if message.startswith("[Access]") or message.startswith("[Error]") or message.startswith("[Auth]"):
+        if message.startswith(("[Access]", "[Error]", "[Auth]", "[Upload]")):
             self_translated_message = message
         else:
             self_translated_message = tr(message) 
@@ -390,9 +392,9 @@ class LocalShareApp(QMainWindow):
         self.stop_server_button.setEnabled(running)
         self.port_spinbox.setEnabled(not running)
         self.password_checkbox.setEnabled(not running)
-        self.password_edit.setEnabled(not running and self.password_checkbox.isChecked()) # Keep disabled
-        self.allow_upload_checkbox.setEnabled(not running)
-        self.rename_uploads_checkbox.setEnabled(not running)
+        self.password_edit.setEnabled(not running and self.password_checkbox.isChecked())
+        self.allow_upload_checkbox.setEnabled(not running) 
+        self.rename_uploads_checkbox.setEnabled(not running) 
         self.select_file_action.setEnabled(not running and False) 
         self.select_folder_action.setEnabled(not running)
         
@@ -473,7 +475,6 @@ class LocalShareApp(QMainWindow):
 
     def change_language(self, lang_code):
         global CURRENT_LANG
-        CURRENT_LANG = lang_code
         self.config["language"] = lang_code
         save_config(self.config)
         self.retranslate_ui()

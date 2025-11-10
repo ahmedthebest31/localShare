@@ -39,8 +39,8 @@
     "password_checkbox": "Use Password",
     "password_label": "Password:",
     
-    "allow_upload_checkbox": "Allow Uploads (Soon)",
-    "rename_uploads_checkbox": "Rename uploads (Soon)",
+    "allow_upload_checkbox": "Allow Uploads",
+    "rename_uploads_checkbox": "Rename uploads with device name",
     
     "log_label": "Activity Log:",
     "status_stopped": "Status: Stopped",
@@ -57,6 +57,7 @@
     "msg_select_folder_first": "Please select a folder to share first (File > Share Folder).",
     "msg_password_empty": "Password is enabled, but the field is empty. Please enter a password.",
     "log_password_enabled": "[Info] Server will start with password protection.",
+    "log_uploads_enabled": "[Info] File uploads are enabled.",
     "log_share_folder_selected": "[Info] Selected folder: {0}",
     "log_server_starting": "[Info] Starting server on port {0}...",
     "log_server_started": "[Info] Server started successfully at {0}",
