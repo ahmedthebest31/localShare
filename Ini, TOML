@@ -1,0 +1,10 @@
+[project]
+name = "localShare"
+version = "0.1.0"
+dependencies = [
+    "PySide6",
+    "requests",
+    "qrcode[pil]",
+    "packaging",
+    "flask"
+]

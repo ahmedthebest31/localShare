@@ -1,7 +1,14 @@
 [project]
 name = "localshare"
 version = "0.1.0"
-description = "Add your description here"
+description = "A simple tool to share files over your local network."
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = []
+requires-python = ">=3.9"
+dependencies = [
+    "PySide6",
+    "requests",
+    "qrcode[pil]",
+    "Flask",
+    "werkzeug",
+    "packaging"
+]

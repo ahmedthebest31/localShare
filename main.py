@@ -6,7 +6,7 @@ import requests
 import socket 
 import qrcode 
 import io 
-import functools # <-- *** THE FIX IS HERE ***
+from packaging.version import Version
 
 from server_handler import ServerThread, WorkerSignals
 
@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QImage, QGuiApplication
 from PySide6.QtCore import Qt, QUrl
 
-# --- 1. Constants (Unchanged) ---
+# --- 1. Constants ---
 APP_VERSION = "0.1.0"
 GITHUB_REPO_URL = "https://github.com/ahmedthebest31/localShare" 
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/ahmedthebest31/localShare/main/version.json" 
@@ -29,7 +29,7 @@ THEMES_DIR = "themes"
 TRANSLATIONS = {}
 CURRENT_LANG = "en" 
 
-# --- 2. Boilerplate Functions (Unchanged) ---
+# --- 2. Boilerplate Functions ---
 def load_config():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
@@ -49,7 +49,7 @@ def save_config(config):
         json.dump(config, f, indent=4)
 
 def load_translations():
-    global TRANSLATIONS
+    global TRANSLATIONS, CURRENT_LANG
     if not os.path.exists(LANGUAGES_DIR):
         print("Warning: 'languages' directory not found.")
         return
@@ -61,17 +61,18 @@ def load_translations():
                     TRANSLATIONS[lang_code] = json.load(f)
             except Exception as e:
                 print(f"Failed to load language {lang_code}: {e}")
+    CURRENT_LANG = load_config().get("language", "en")
 
 def tr(key, *args):
-    text = TRANSLATIONS.get("en", {}).get(key)
+    text = TRANSLATIONS.get(CURRENT_LANG, {}).get(key, TRANSLATIONS.get("en", {}).get(key))
     if text is None:
         text = key 
     try:
         return text.format(*args)
-    except (KeyError, TypeError):
+    except (IndexError, KeyError, TypeError):
         return text 
 
-# --- 3. About Dialog (Unchanged) ---
+# --- 3. About Dialog ---
 class AboutDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -101,7 +102,7 @@ class AboutDialog(QDialog):
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
-# --- 4. Main Application Window (Unchanged, but needs the import) ---
+# --- 4. Main Application Window ---
 class LocalShareApp(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -121,7 +122,6 @@ class LocalShareApp(QMainWindow):
         self.load_themes_to_menu()
     
     def setup_menubar(self):
-        # (Unchanged)
         menubar = self.menuBar()
         menubar.clear()
         file_menu = menubar.addMenu(tr("menu_file"))
@@ -154,7 +154,6 @@ class LocalShareApp(QMainWindow):
         github_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl(GITHUB_REPO_URL)))
 
     def load_themes_to_menu(self):
-        # (Unchanged)
         self.themes_menu.clear()
         current_theme = self.config.get("theme", "dark_theme.qss")
         theme_group = QActionGroup(self)
@@ -173,13 +172,11 @@ class LocalShareApp(QMainWindow):
             QMessageBox.critical(self, tr("dialog_title_error"), f"Could not load themes: {e}")
 
     def change_theme(self, theme_file):
-        # (Unchanged)
         self.apply_theme(theme_file)
         self.config["theme"] = theme_file
         save_config(self.config)
 
     def apply_theme(self, theme_file):
-        # (Unchanged)
         theme_path = os.path.join(THEMES_DIR, theme_file)
         try:
             with open(theme_path, "r", encoding="utf-8") as f:
@@ -192,7 +189,6 @@ class LocalShareApp(QMainWindow):
             QMessageBox.critical(self, tr("dialog_title_error"), f"Could not apply theme: {e}")
 
     def setup_ui(self):
-        # (Unchanged)
         """Sets up the UI for localShare with proper accessibility."""
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -261,7 +257,6 @@ class LocalShareApp(QMainWindow):
         main_layout.addLayout(right_layout, 3) 
 
     def connect_signals(self):
-        # (Unchanged)
         """Connects all UI signals to their functions."""
         self.password_checkbox.toggled.connect(self.toggle_password_fields)
         self.start_server_button.clicked.connect(self.start_server)
@@ -270,14 +265,12 @@ class LocalShareApp(QMainWindow):
         self.copy_url_button.clicked.connect(self.copy_url)
 
     def toggle_password_fields(self, checked):
-        # (Unchanged)
         self.password_label.setVisible(checked)
         self.password_edit.setVisible(checked)
         if checked:
             self.password_edit.setFocus()
         
     def retranslate_ui(self):
-        # (Unchanged)
         self.setWindowTitle(tr("app_name"))
         self.setup_menubar() 
         self.start_server_button.setText(tr("start_server_button"))
@@ -295,10 +288,7 @@ class LocalShareApp(QMainWindow):
         self.select_file_action.setText(tr("menu_file_select_file"))
         self.select_folder_action.setText(tr("menu_file_select_folder"))
 
-    # --- Server Control Functions (MODIFIED: start_server) ---
-
     def select_folder(self):
-        # (Unchanged)
         """Opens a dialog to select a folder to share."""
         path = QFileDialog.getExistingDirectory(self, tr("menu_file_select_folder"))
         if path:
@@ -307,7 +297,6 @@ class LocalShareApp(QMainWindow):
             self.start_server_button.setEnabled(True)
 
     def start_server(self):
-        # (Modified to pass settings)
         """Starts the web server in a new thread."""
         if not self.share_path:
             QMessageBox.warning(self, tr("dialog_title_error"), tr("msg_select_folder_first"))
@@ -346,13 +335,11 @@ class LocalShareApp(QMainWindow):
         self.server_thread.start()
 
     def stop_server(self):
-        # (Unchanged)
         """Stops the web server thread."""
-        if self.server_thread:
+        if self.server_thread and self.server_thread.is_alive():
             self.server_thread.stop()
         
     def on_server_started(self, ip, port):
-        # (Unchanged)
         """Callback when the server thread confirms it has started."""
         url = f"http://{ip}:{port}"
         self.log(tr("log_server_started", url))
@@ -361,16 +348,14 @@ class LocalShareApp(QMainWindow):
         self.generate_qr_pixmap(url)
 
     def on_server_stopped(self):
-        # (Unchanged)
         """Callback when the server thread confirms it has stopped."""
         self.log(tr("log_server_stopped"))
         self.set_ui_state(running=False)
         self.server_thread = None
 
     def log(self, message):
-        # (Unchanged)
         """Appends a message to the activity log."""
-        if message.startswith(("[Access]", "[Error]", "[Auth]", "[Upload]")):
+        if message.startswith(("[Access]", "[Error]", "[Auth]", "[Upload]", "[Security]")):
             self_translated_message = message
         else:
             self_translated_message = tr(message) 
@@ -378,7 +363,6 @@ class LocalShareApp(QMainWindow):
         self.log_display.appendPlainText(self_translated_message)
     
     def copy_url(self):
-        # (Unchanged)
         """Copies the sharing URL to the clipboard."""
         if self.url_edit.text():
             clipboard = QGuiApplication.clipboard()
@@ -386,7 +370,6 @@ class LocalShareApp(QMainWindow):
             self.log("log_url_copied") 
 
     def set_ui_state(self, running):
-        # (Unchanged)
         """Enables/disables UI elements based on server state."""
         self.start_server_button.setEnabled(not running)
         self.stop_server_button.setEnabled(running)
@@ -402,11 +385,10 @@ class LocalShareApp(QMainWindow):
             self.status_label.setText(tr("status_stopped"))
             self.url_edit.clear()
             self.qr_code_label.setText(tr("qr_code_placeholder"))
-            self.qr_code_label.setPixmap(QPixmap()) 
+            self.qr_code_label.setPixmap(QPixmap())
             self.start_server_button.setEnabled(self.share_path is not None)
 
     def generate_qr_pixmap(self, text):
-        # (Unchanged)
         """Generates a QPixmap from the given text."""
         try:
             qr = qrcode.QRCode(version=1, box_size=10, border=4)
@@ -425,8 +407,6 @@ class LocalShareApp(QMainWindow):
             self.qr_code_label.setAccessibleName(tr("qr_code_desc", text))
         except Exception as e:
             self.log(f"[Error] Could not generate QR code: {e}")
-
-    # --- Boilerplate Functions (Unchanged) ---
     
     def show_about_dialog(self):
         about_dialog = AboutDialog(self)
@@ -437,13 +417,13 @@ class LocalShareApp(QMainWindow):
             response = requests.get(GITHUB_VERSION_URL, timeout=5)
             response.raise_for_status()
             latest_version_data = response.json()
-            latest_version = latest_version_data.get("version")
-            if latest_version and self.compare_versions(latest_version, APP_VERSION) > 0:
-                whats_new = latest_version_data.get("en", tr("msg_no_new_features"))
+            latest_version_str = latest_version_data.get("version")
+            if latest_version_str and Version(latest_version_str) > Version(APP_VERSION):
+                whats_new = latest_version_data.get(f"whats_new_{CURRENT_LANG}", latest_version_data.get("whats_new_en", tr("msg_no_new_features")))
                 download_url = latest_version_data.get("direct_download_url", GITHUB_REPO_URL + "/releases")
                 msg_box = QMessageBox(self)
                 msg_box.setWindowTitle(tr("dialog_title_update_available"))
-                info_text = tr("msg_update_info", APP_VERSION, latest_version)
+                info_text = tr("msg_update_info", APP_VERSION, latest_version_str)
                 full_text = f"{info_text}\n\n**{tr('whats_new_title')}:**\n{whats_new}"
                 msg_box.setText(full_text)
                 msg_box.setIcon(QMessageBox.Icon.Information)
@@ -464,17 +444,9 @@ class LocalShareApp(QMainWindow):
         except (json.JSONDecodeError, KeyError):
             QMessageBox.critical(self, tr("dialog_title_error"), tr("msg_update_parse_error"))
 
-    def compare_versions(self, v1, v2):
-        p1 = [int(x) for x in v1.split('.')]
-        p2 = [int(x) for x in v1.split('.')]
-        p1.extend([0] * (len(p2) - len(p1)))
-        p2.extend([0] * (len(p1) - len(p2)))
-        if p1 > p2: return 1
-        if p1 < p2: return -1
-        return 0
-
     def change_language(self, lang_code):
         global CURRENT_LANG
+        CURRENT_LANG = lang_code
         self.config["language"] = lang_code
         save_config(self.config)
         self.retranslate_ui()

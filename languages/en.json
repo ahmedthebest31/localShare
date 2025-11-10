@@ -62,5 +62,6 @@
     "log_server_starting": "[Info] Starting server on port {0}...",
     "log_server_started": "[Info] Server started successfully at {0}",
     "log_server_stopping": "[Info] Stopping server...",
-    "log_server_stopped": "[Info] Server stopped."
+    "log_server_stopped": "[Info] Server stopped.",
+    "log_checking_for_updates": "[Info] Checking for updates..."
 }
