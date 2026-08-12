@@ -298,7 +298,7 @@ class ServerThread(threading.Thread):
             self.signals.server_stopped.emit()
 
     def stop(self):
-        if hasattr(self, 'server') and self.server.is_alive():
+        if self.server is not None and self.server.is_alive():
             self.signals.log_message.emit("log_server_stopping")
             self.server.shutdown()
 

@@ -122,3 +122,20 @@ def test_upload_size_limit_returns_413(tmp_share):
     data = {"filetoupload": (io.BytesIO(b"x" * (2 * 1024 * 1024)), "big.bin")}
     resp = client.post("/", data=data, content_type="multipart/form-data")
     assert resp.status_code == 413
+
+
+def test_stop_without_running_server_does_not_crash(tmp_share):
+    thread = ServerThread(8000, tmp_share)
+    thread.stop()
+
+
+def test_stop_after_failed_bind_does_not_crash(tmp_share, monkeypatch):
+    def fake_make_server(*args, **kwargs):
+        raise OSError("[WinError 10048] address already in use")
+
+    monkeypatch.setattr("werkzeug.serving.make_server", fake_make_server)
+    thread = ServerThread(8000, tmp_share)
+    thread.start()
+    thread.join(timeout=5)
+    assert not thread.is_alive()
+    thread.stop()
