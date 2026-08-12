@@ -72,6 +72,8 @@ def load_config():
             config = json.load(f)
             config.setdefault("language", "en")
             config.setdefault("theme", "dark_theme.qss")
+            config.setdefault("port", 8000)
+            config.setdefault("allow_upload", False)
             return config
     return {
         "language": "en", 
@@ -384,7 +386,11 @@ class LocalShareApp(QMainWindow):
         max_upload_size = 0
         if self.limit_upload_size_checkbox.isChecked():
             max_upload_size = self.upload_size_spinbox.value()
-        
+
+        self.config["port"] = port
+        self.config["allow_upload"] = allow_upload
+        save_config(self.config)
+
         self.log(tr("log_server_starting", port))
         self.set_ui_state(running=True)
         self.status_label.setText(tr("status_starting"))
