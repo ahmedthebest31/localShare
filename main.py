@@ -2,11 +2,9 @@
 import sys
 import json
 import os
-import requests 
-import socket 
 import qrcode 
 import io 
-from packaging.version import Version
+from pathlib import Path
 
 from server_handler import ServerThread, WorkerSignals
 
@@ -17,15 +15,51 @@ from PySide6.QtWidgets import (
     QFileDialog, QSizePolicy 
 )
 from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QImage, QGuiApplication
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QStandardPaths
 
 # --- 1. Constants ---
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 GITHUB_REPO_URL = "https://github.com/ahmedthebest31/localShare" 
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/ahmedthebest31/localShare/main/version.json" 
-CONFIG_FILE = "config.json"
-LANGUAGES_DIR = "languages"
-THEMES_DIR = "themes"
+
+def get_app_version() -> str:
+    """Return the installed version, falling back to the constant when frozen."""
+    try:
+        import importlib.metadata
+        return importlib.metadata.version("localshare")
+    except Exception:
+        return APP_VERSION
+
+class PathProvider:
+    """Resolves resource and data directories for both source and frozen runs."""
+
+    @staticmethod
+    def is_frozen() -> bool:
+        return getattr(sys, "frozen", False)
+
+    @classmethod
+    def resource_dir(cls) -> Path:
+        if cls.is_frozen():
+            meipass = getattr(sys, "_MEIPASS", None)
+            if meipass and Path(meipass) != Path(sys.executable).parent:
+                return Path(meipass)
+            return Path(sys.executable).parent
+        return Path(__file__).resolve().parent
+
+    @classmethod
+    def data_dir(cls) -> Path:
+        if cls.is_frozen():
+            base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation)
+            data = Path(base) / "localShare"
+            data.mkdir(parents=True, exist_ok=True)
+            return data
+        return Path(__file__).resolve().parent
+
+RESOURCE_DIR = PathProvider.resource_dir()
+DATA_DIR = PathProvider.data_dir()
+CONFIG_FILE = str(DATA_DIR / "config.json")
+LANGUAGES_DIR = str(RESOURCE_DIR / "languages")
+THEMES_DIR = str(RESOURCE_DIR / "themes")
+
 TRANSLATIONS = {}
 CURRENT_LANG = "en" 
 
@@ -45,8 +79,11 @@ def load_config():
     }
 
 def save_config(config):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(config, f, indent=4)
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=4)
+    except OSError as e:
+        print(f"[Error] Could not save config to {CONFIG_FILE}: {e}")
 
 def load_translations():
     global TRANSLATIONS, CURRENT_LANG
@@ -83,14 +120,14 @@ class AboutDialog(QDialog):
         layout.setSpacing(10)
         name_label = QLabel(f"<b>{tr('app_name')}</b>")
         layout.addWidget(name_label)
-        version_label = QLabel(f"<b>{tr('about_dialog_version', APP_VERSION)}</b>")
+        version_label = QLabel(f"<b>{tr('about_dialog_version', get_app_version())}</b>")
         layout.addWidget(version_label)
         description_label = QLabel(tr("about_dialog_description_text"))
         description_label.setWordWrap(True)
         layout.addWidget(description_label)
         developer_label = QLabel(f"{tr('about_dialog_developer')}: Ahmed Samy")
         layout.addWidget(developer_label)
-        email_label = QLabel(f"{tr('about_dialog_email')}: ahmedthebest31@gmail.com")
+        email_label = QLabel(f'<a href="mailto:ahmedthebest31@gmail.com">ahmedthebest31@gmail.com</a>')
         email_label.setOpenExternalLinks(True)
         layout.addWidget(email_label)
         layout.addStretch()
@@ -120,14 +157,16 @@ class LocalShareApp(QMainWindow):
         self.retranslate_ui()
         self.connect_signals() 
         self.load_themes_to_menu()
+
+        from update_manager import UpdateManager
+        self.update_manager = UpdateManager(self, tr, load_config, save_config, get_app_version())
+        self.update_manager.check_for_updates(silent=True)
     
     def setup_menubar(self):
         menubar = self.menuBar()
         menubar.clear()
         file_menu = menubar.addMenu(tr("menu_file"))
-        self.select_file_action = file_menu.addAction(tr("menu_file_select_file")) 
         self.select_folder_action = file_menu.addAction(tr("menu_file_select_folder")) 
-        self.select_file_action.setEnabled(False) 
         file_menu.addSeparator()
         exit_action = file_menu.addAction(tr("menu_file_exit"))
         exit_action.triggered.connect(self.close)
@@ -309,7 +348,6 @@ class LocalShareApp(QMainWindow):
         self.url_label.setText(tr("url_label"))
         self.copy_url_button.setText(tr("copy_url_button"))
         self.qr_code_label.setText(tr("qr_code_placeholder"))
-        self.select_file_action.setText(tr("menu_file_select_file"))
         self.select_folder_action.setText(tr("menu_file_select_folder"))
 
     def select_folder(self):
@@ -409,7 +447,6 @@ class LocalShareApp(QMainWindow):
         self.rename_uploads_checkbox.setEnabled(not running) 
         self.limit_upload_size_checkbox.setEnabled(not running)
         self.upload_size_spinbox.setEnabled(not running and self.limit_upload_size_checkbox.isChecked())
-        self.select_file_action.setEnabled(not running and False) 
         self.select_folder_action.setEnabled(not running)
         
         if not running:
@@ -444,36 +481,7 @@ class LocalShareApp(QMainWindow):
         about_dialog.exec()
 
     def check_for_updates(self):
-        try:
-            response = requests.get(GITHUB_VERSION_URL, timeout=5)
-            response.raise_for_status()
-            latest_version_data = response.json()
-            latest_version_str = latest_version_data.get("version")
-            if latest_version_str and Version(latest_version_str) > Version(APP_VERSION):
-                whats_new = latest_version_data.get(f"whats_new_{CURRENT_LANG}", latest_version_data.get("whats_new_en", tr("msg_no_new_features")))
-                download_url = latest_version_data.get("direct_download_url", GITHUB_REPO_URL + "/releases")
-                msg_box = QMessageBox(self)
-                msg_box.setWindowTitle(tr("dialog_title_update_available"))
-                info_text = tr("msg_update_info", APP_VERSION, latest_version_str)
-                full_text = f"{info_text}\n\n**{tr('whats_new_title')}:**\n{whats_new}"
-                msg_box.setText(full_text)
-                msg_box.setIcon(QMessageBox.Icon.Information)
-                download_button = msg_box.addButton(tr("button_direct_download"), QMessageBox.ButtonRole.ActionRole)
-                open_page_button = msg_box.addButton(tr("button_open_download_page"), QMessageBox.ButtonRole.ActionRole)
-                msg_box.addButton(QMessageBox.StandardButton.Ok)
-                msg_box.exec()
-                if msg_box.clickedButton() == download_button:
-                    QDesktopServices.openUrl(QUrl(download_url))
-                elif msg_box.clickedButton() == open_page_button:
-                    QDesktopServices.openUrl(QUrl(GITHUB_REPO_URL + "/releases"))
-            else:
-                QMessageBox.information(self, tr("dialog_title_no_update"), tr("msg_no_update"))
-        except ImportError:
-            QMessageBox.critical(self, tr("dialog_title_error"), tr("msg_requests_missing"))
-        except requests.exceptions.RequestException as e:
-            QMessageBox.critical(self, tr("dialog_title_error"), tr("msg_network_error", e))
-        except (json.JSONDecodeError, KeyError):
-            QMessageBox.critical(self, tr("dialog_title_error"), tr("msg_update_parse_error"))
+        self.update_manager.check_for_updates(silent=False)
 
     def change_language(self, lang_code):
         global CURRENT_LANG
@@ -491,8 +499,6 @@ class LocalShareApp(QMainWindow):
 # --- 6. Main Execution ---
         
 def main():
-    QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
-    QApplication.setAttribute(Qt.ApplicationAttribute.AA_DontCheckOpenGLContextThreadAffinity)
     load_translations()
     app = QApplication(sys.argv)
     window = LocalShareApp()

@@ -1,14 +1,36 @@
 [project]
 name = "localshare"
-version = "0.1.0"
-description = "A simple tool to share files over your local network."
+version = "0.2.0"
+description = "A modern, cross-platform desktop application for local file sharing."
 readme = "README.md"
-requires-python = ">=3.9"
+authors = [
+    { name = "Ahmed Samy", email = "ahmedthebest31@gmail.com" }
+]
+requires-python = ">=3.14"
 dependencies = [
-    "PySide6",
-    "requests",
-    "qrcode[pil]",
-    "Flask",
-    "werkzeug",
-    "packaging"
+    "flask>=3.1.2",
+    "packaging>=25.0",
+    "pillow>=12.1.0",
+    "pyside6>=6.10.1",
+    "qrcode>=8.2",
+    "requests>=2.32.5",
+]
+
+[project.scripts]
+localshare = "main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main", "server_handler", "update_manager"]
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = [
+    "pyinstaller",
+    "pytest>=9.1.1",
 ]

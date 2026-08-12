@@ -136,6 +136,16 @@ class WorkerSignals(QObject):
     log_message = Signal(str)
     server_stopped = Signal()
 
+def unique_filename(directory, filename):
+    """Return a filename inside directory that does not collide with an existing file."""
+    base, ext = os.path.splitext(filename)
+    candidate = filename
+    counter = 1
+    while os.path.exists(os.path.join(directory, candidate)):
+        candidate = f"{base} ({counter}){ext}"
+        counter += 1
+    return candidate
+
 class ServerThread(threading.Thread):
     def __init__(self, port, share_path, password=None, allow_upload=False, rename_upload=False, max_upload_size=0):
         super().__init__()
@@ -206,14 +216,15 @@ class ServerThread(threading.Thread):
                         final_filename = f"{name} (from {user}){ext}"
                     else:
                         final_filename = filename
-                    
-                    upload_path_abs = os.path.abspath(os.path.join(app.config['SHARE_PATH'], final_filename))
+
+                    saved_name = unique_filename(app.config['SHARE_PATH'], final_filename)
+                    upload_path_abs = os.path.abspath(os.path.join(app.config['SHARE_PATH'], saved_name))
                     if not upload_path_abs.startswith(os.path.abspath(app.config['SHARE_PATH'])):
-                        self.signals.log_message.emit(f"[Security] Blocked potential directory traversal upload from {user} for filename '{final_filename}'")
+                        self.signals.log_message.emit(f"[Security] Blocked potential directory traversal upload from {user} for filename '{saved_name}'")
                         abort(403)
 
                     file.save(upload_path_abs)
-                    self.signals.log_message.emit(f"[Upload] Success: '{final_filename}' from {user}")
+                    self.signals.log_message.emit(f"[Upload] Success: '{saved_name}' from {user}")
 
             file_info_list = []
             try:
@@ -242,8 +253,15 @@ class ServerThread(threading.Thread):
                 abort(404)
 
             self.signals.log_message.emit(f"[Access] ({user}) {request.remote_addr} - GET /files/{filename}")
-            return send_from_directory(app.config['SHARE_PATH'], filename, as_attachment=False)
-            
+            response = send_from_directory(app.config['SHARE_PATH'], filename, as_attachment=False)
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            return response
+
+        @app.errorhandler(413)
+        def file_too_large(e):
+            self.signals.log_message.emit("[Upload] Rejected upload: file exceeds the configured size limit.")
+            return "File too large.", 413
+
         return app
 
     def run(self):
@@ -285,9 +303,21 @@ class ServerThread(threading.Thread):
             self.server.shutdown()
 
     def get_local_ip(self):
+        """Best-effort local IPv4 address using multiple strategies."""
+        candidates = set()
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.connect(("8.8.8.8", 80))
-                return s.getsockname()[0]
+                candidates.add(s.getsockname()[0])
         except Exception:
-            return "127.0.0.1"
+            pass
+        try:
+            hostname = socket.gethostname()
+            for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+                candidates.add(info[4][0])
+        except Exception:
+            pass
+        for ip in sorted(candidates):
+            if not ip.startswith("127.") and not ip.startswith("169.254."):
+                return ip
+        return "127.0.0.1"

@@ -2,7 +2,6 @@
     "lang_name": "English",
     "app_name": "localShare",
     "menu_file": "&File",
-    "menu_file_select_file": "Share &File... (Soon)",
     "menu_file_select_folder": "Share &Folder...",
     "menu_file_exit": "&Exit",
     "menu_settings": "&Settings",
@@ -16,43 +15,47 @@
     "about_dialog_version": "Version {0}",
     "about_dialog_description_text": "A simple tool to share files over your local network.",
     "about_dialog_developer": "Developer",
-    "about_dialog_email": "Email",
     "about_dialog_close_button": "Close",
+    "theme_dark": "Dark",
+    "theme_light": "Light",
+
     "dialog_title_error": "Error",
     "dialog_title_update_available": "Update Available",
     "dialog_title_no_update": "No Update",
-    "msg_update_info": "You are using version {0}. Version {1} is available.",
     "msg_no_new_features": "No new features listed.",
     "whats_new_title": "What's New",
-    "button_direct_download": "Download Now",
-    "button_open_download_page": "Open Download Page",
     "msg_no_update": "You are using the latest version.",
     "msg_network_error": "Network error: {0}",
-    "msg_update_parse_error": "Could not parse update information.",
-    "msg_requests_missing": "The 'requests' library is missing. Cannot check for updates.",
-    
+    "checking_updates": "Checking for updates...",
+    "downloading_update_label": "Downloading update...",
+    "downloading_update_title": "Downloading Update",
+    "button_cancel": "Cancel",
+    "button_skip_version": "Skip This Version",
+    "button_remind_later": "Remind Me Later",
+    "button_update_now": "Update Now",
+
     "start_server_button": "Start Server",
     "stop_server_button": "Stop Server",
-    
+
     "port_label": "Port:",
-    
+
     "password_checkbox": "Use Password",
     "password_label": "Password:",
-    
+
     "allow_upload_checkbox": "Allow Uploads",
     "rename_uploads_checkbox": "Rename uploads with device name",
     "limit_upload_size_checkbox": "Limit upload file size",
     "upload_size_limit_label": "Size limit (MB):",
-    
+
     "log_label": "Activity Log:",
     "status_stopped": "Status: Stopped",
     "status_starting": "Status: Starting...",
     "status_running": "Status: Running at {0}",
-    
+
     "url_label": "URL:",
     "copy_url_button": "Copy",
     "log_url_copied": "[Info] URL copied to clipboard.",
-    
+
     "qr_code_placeholder": "QR Code will appear here",
     "qr_code_desc": "QR code to access the URL {0}",
 
