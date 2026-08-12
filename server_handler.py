@@ -211,6 +211,9 @@ class ServerThread(threading.Thread):
                 file = request.files.get('filetoupload')
                 if file and file.filename:
                     filename = secure_filename(file.filename)
+                    if not filename:
+                        self.signals.log_message.emit(f"[Upload] Rejected upload from {user}: invalid filename.")
+                        abort(400)
                     if app.config['RENAME_UPLOAD'] and user != request.remote_addr:
                         name, ext = os.path.splitext(filename)
                         final_filename = f"{name} (from {user}){ext}"

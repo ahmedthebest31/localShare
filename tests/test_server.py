@@ -124,6 +124,16 @@ def test_upload_size_limit_returns_413(tmp_share):
     assert resp.status_code == 413
 
 
+def test_upload_invalid_filename_returns_400(tmp_share):
+    thread = ServerThread(8000, tmp_share, allow_upload=True)
+    flask_app = thread._create_flask_app()
+    client = flask_app.test_client()
+    cyrillic_name = "\u0444\u0430\u0439\u043b"
+    data = {"filetoupload": (io.BytesIO(b"data"), cyrillic_name)}
+    resp = client.post("/", data=data, content_type="multipart/form-data")
+    assert resp.status_code == 400
+
+
 def test_stop_without_running_server_does_not_crash(tmp_share):
     thread = ServerThread(8000, tmp_share)
     thread.stop()

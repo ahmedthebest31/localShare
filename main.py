@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (
     QFileDialog, QSizePolicy 
 )
 from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QImage, QGuiApplication
-from PySide6.QtCore import Qt, QUrl, QStandardPaths
+from PySide6.QtCore import QCoreApplication, Qt, QUrl, QStandardPaths
 
 # --- 1. Constants ---
 APP_VERSION = "0.2.0"
@@ -49,10 +49,12 @@ class PathProvider:
     def data_dir(cls) -> Path:
         if cls.is_frozen():
             base = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation)
-            data = Path(base) / "localShare"
+            data = Path(base)
             data.mkdir(parents=True, exist_ok=True)
             return data
         return Path(__file__).resolve().parent
+
+QCoreApplication.setApplicationName("localShare")
 
 RESOURCE_DIR = PathProvider.resource_dir()
 DATA_DIR = PathProvider.data_dir()
