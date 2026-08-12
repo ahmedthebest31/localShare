@@ -18,7 +18,7 @@ from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QIma
 from PySide6.QtCore import QCoreApplication, Qt, QUrl, QStandardPaths
 
 # --- 1. Constants ---
-APP_VERSION = "0.2.0"
+APP_VERSION = "1.0.0"
 GITHUB_REPO_URL = "https://github.com/ahmedthebest31/localShare" 
 
 def get_app_version() -> str:

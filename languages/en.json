@@ -27,9 +27,12 @@
     "msg_no_update": "You are using the latest version.",
     "msg_network_error": "Network error: {0}",
     "checking_updates": "Checking for updates...",
+    "downloading_update_label": "Downloading update...",
+    "downloading_update_title": "Downloading Update",
+    "button_cancel": "Cancel",
     "button_skip_version": "Skip This Version",
     "button_remind_later": "Remind Me Later",
-    "button_update_now": "Open Download Page",
+    "button_update_now": "Update Now",
 
     "start_server_button": "Start Server",
     "stop_server_button": "Stop Server",

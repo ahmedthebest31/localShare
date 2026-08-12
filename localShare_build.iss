@@ -1,5 +1,5 @@
 #define MyAppName "localShare"
-#define MyAppVersion "0.2.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "Ahmed Samy Elkhouly"
 #define MyAppURL "https://github.com/ahmedthebest31/localShare"
 #define MyAppExeName "localShare.exe"

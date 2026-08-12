@@ -1,6 +1,5 @@
 {
-    "version": "0.2.0",
-    "whats_new": {
-        "en": "- Update check now opens the download page with the latest installer and portable build.\n- Added an app icon for Windows, macOS, and Linux.\n- Released under the GNU General Public License v3.\n- Added automated release builds for Windows, Linux, and macOS."
-    }
+    "version": "1.0.0",
+    "direct_download_url": "https://github.com/ahmedthebest31/localShare/releases/download/v1.0.0/localShare_Setup.exe",
+    "whats_new": "Welcome to localShare 1.0.0, the first stable release!\n- Share folders over your local network without installing anything on the receiver device.\n- Two-way transfers: download and upload files from any browser.\n- Optional password protection and upload size limits.\n- Automatic updates: the app downloads and silently installs new versions."
 }

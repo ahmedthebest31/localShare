@@ -1,6 +1,6 @@
 [project]
 name = "localshare"
-version = "0.2.0"
+version = "1.0.0"
 description = "A modern, cross-platform desktop application for local file sharing."
 readme = "README.md"
 authors = [
