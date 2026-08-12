@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
     QGridLayout, QLineEdit, QCheckBox, QSpinBox, QPlainTextEdit,
     QFileDialog, QSizePolicy 
 )
-from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QImage, QGuiApplication
+from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QImage, QGuiApplication, QIcon
 from PySide6.QtCore import QCoreApplication, Qt, QUrl, QStandardPaths
 
 # --- 1. Constants ---
@@ -61,6 +61,7 @@ DATA_DIR = PathProvider.data_dir()
 CONFIG_FILE = str(DATA_DIR / "config.json")
 LANGUAGES_DIR = str(RESOURCE_DIR / "languages")
 THEMES_DIR = str(RESOURCE_DIR / "themes")
+ICON_PATH = RESOURCE_DIR / "assets" / "icon_64.png"
 
 TRANSLATIONS = {}
 CURRENT_LANG = "en" 
@@ -509,6 +510,8 @@ class LocalShareApp(QMainWindow):
 def main():
     load_translations()
     app = QApplication(sys.argv)
+    if ICON_PATH.exists():
+        app.setWindowIcon(QIcon(str(ICON_PATH)))
     window = LocalShareApp()
     window.show()
     sys.exit(app.exec())

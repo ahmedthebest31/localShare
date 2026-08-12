@@ -1,7 +1,6 @@
 {
     "version": "0.2.0",
-    "direct_download_url": "https://github.com/ahmedthebest31/localShare/releases/download/v0.2.0/localShare-v0.2.0.zip",
     "whats_new": {
-        "en": "- Fixed the broken update checker and added automatic update download.\n- Modernized the dark and light themes.\n- Improved local IP detection and upload safety.\n- Settings now persist in the user data folder when the app is packaged."
+        "en": "- Update check now opens the download page with the latest installer and portable build.\n- Added an app icon for Windows, macOS, and Linux.\n- Released under the GNU General Public License v3.\n- Added automated release builds for Windows, Linux, and macOS."
     }
 }

@@ -1,16 +1,16 @@
 # update_manager.py
 # Adapted from the ImageType project's update_manager.py (technical pattern only).
+# Update flow: when a new version is found, "Update Now" opens the download page
+# in the browser. The user installs the release manually.
 import json
-import os
-import subprocess
-import tempfile
-from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 import requests
 from packaging.version import InvalidVersion, Version
 
-from PySide6.QtCore import QCoreApplication, QObject, QThread, Qt, Signal
+from PySide6.QtCore import QObject, QThread, Signal
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -63,49 +63,6 @@ class VersionChecker(QThread):
             self.error.emit(f"Data error: {e}")
 
 
-class Downloader(QThread):
-    progress = Signal(int)
-    finished = Signal(str)
-    error = Signal(str)
-
-    def __init__(self, url: str, parent: Optional[QObject] = None) -> None:
-        super().__init__(parent)
-        self.url = url
-        self._cancelled = False
-
-    def cancel(self) -> None:
-        self._cancelled = True
-
-    def run(self) -> None:
-        try:
-            temp_dir = Path(tempfile.gettempdir())
-            filename = self.url.rstrip('/').split('/')[-1] or "localshare_update"
-            save_path = temp_dir / filename
-
-            response = requests.get(self.url, stream=True, timeout=10)
-            response.raise_for_status()
-            total_size = int(response.headers.get('content-length', 0))
-
-            downloaded = 0
-            with open(save_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if self._cancelled:
-                        f.close()
-                        os.remove(save_path)
-                        self.error.emit("Download cancelled.")
-                        return
-                    if chunk:
-                        f.write(chunk)
-                        downloaded += len(chunk)
-                        if total_size > 0:
-                            percent = int((downloaded / total_size) * 100)
-                            self.progress.emit(percent)
-
-            self.finished.emit(str(save_path))
-        except Exception as e:
-            self.error.emit(str(e))
-
-
 class UpdateDialog(QDialog):
     def __init__(self, new_version: str, whats_new: str, tr_func: Callable, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -136,8 +93,8 @@ class UpdateDialog(QDialog):
         self.btn_skip.setAccessibleName("Skip this version")
         self.btn_remind = QPushButton(_tr(tr_func, "button_remind_later", "Remind Me Later"))
         self.btn_remind.setAccessibleName("Remind me later")
-        self.btn_update = QPushButton(_tr(tr_func, "button_update_now", "Update Now"))
-        self.btn_update.setAccessibleName("Update now")
+        self.btn_update = QPushButton(_tr(tr_func, "button_update_now", "Open Download Page"))
+        self.btn_update.setAccessibleName("Open download page")
         self.btn_update.setStyleSheet("font-weight: bold;")
 
         btn_layout.addWidget(self.btn_skip)
@@ -182,8 +139,6 @@ class UpdateManager(QObject):
         self.silent: bool = False
         self.progress_dialog: Optional[QProgressDialog] = None
         self.checker_thread: Optional[VersionChecker] = None
-        self.downloader_thread: Optional[Downloader] = None
-        self.download_url: str = ""
 
     def check_for_updates(self, silent: bool = True) -> None:
         self.silent = silent
@@ -233,8 +188,7 @@ class UpdateManager(QObject):
         dialog = UpdateDialog(new_version, whats_new, self.tr, self.parent_widget)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             if dialog.action == "update":
-                self.download_url = data.get("direct_download_url", "")
-                self._start_download(self.download_url)
+                QDesktopServices.openUrl(QUrl(GITHUB_RELEASES_URL))
         else:
             if dialog.action == "skip":
                 config["skipped_version"] = new_version
@@ -247,61 +201,3 @@ class UpdateManager(QObject):
     def _on_error(self, error_msg: str) -> None:
         if not self.silent:
             QMessageBox.critical(self.parent_widget, _tr(self.tr, "dialog_title_error", "Error"), _tr(self.tr, "msg_network_error", "Network error: {0}", error_msg))
-
-    def _start_download(self, url: str) -> None:
-        if not url:
-            QMessageBox.critical(self.parent_widget, _tr(self.tr, "dialog_title_error", "Error"), "Download URL is empty.")
-            return
-
-        self.progress_dialog = QProgressDialog(
-            _tr(self.tr, "downloading_update_label", "Downloading update..."),
-            _tr(self.tr, "button_cancel", "Cancel"),
-            0,
-            100,
-            self.parent_widget,
-        )
-        self.progress_dialog.setWindowTitle(_tr(self.tr, "downloading_update_title", "Downloading Update"))
-        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self.progress_dialog.setAutoClose(True)
-        self.progress_dialog.setAutoReset(True)
-
-        self.downloader_thread = Downloader(url, self)
-        self.progress_dialog.canceled.connect(self.downloader_thread.cancel)
-
-        self.downloader_thread.progress.connect(self.progress_dialog.setValue)
-        self.downloader_thread.finished.connect(self._on_download_finished)
-        self.downloader_thread.error.connect(self._on_download_error)
-        self.downloader_thread.start()
-        self.progress_dialog.show()
-
-    def _on_download_finished(self, file_path: str) -> None:
-        if self.progress_dialog:
-            self.progress_dialog.close()
-
-        try:
-            if file_path.lower().endswith(".exe"):
-                subprocess.Popen([file_path])
-                QCoreApplication.quit()
-            else:
-                self._open_in_file_manager(file_path)
-        except Exception as e:
-            QMessageBox.critical(self.parent_widget, _tr(self.tr, "dialog_title_error", "Error"), f"Failed to open the downloaded file:\n{e}")
-
-    def _open_in_file_manager(self, file_path: str) -> None:
-        if os.name == "nt":
-            subprocess.Popen(["explorer", "/select,", file_path])
-        else:
-            subprocess.Popen(["xdg-open", os.path.dirname(file_path)])
-
-    def _on_download_error(self, error_msg: str) -> None:
-        if self.progress_dialog:
-            self.progress_dialog.close()
-
-        reply = QMessageBox.critical(
-            self.parent_widget,
-            _tr(self.tr, "dialog_title_error", "Error"),
-            f"Download failed:\n{error_msg}\n\nDo you want to retry?",
-            QMessageBox.StandardButton.Retry | QMessageBox.StandardButton.Cancel,
-        )
-        if reply == QMessageBox.StandardButton.Retry:
-            self._start_download(self.download_url)

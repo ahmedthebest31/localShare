@@ -17,9 +17,12 @@ The core philosophy is simplicity: the receiving device does **not** need to ins
 
 ## Download
 
-You can download the latest standalone executable for Windows from the Releases page:
+Grab the latest release from the [Releases page](https://github.com/ahmedthebest31/localShare/releases):
 
-[Download latest version](https://github.com/ahmedthebest31/localShare/releases)
+- **Windows Installer** (`localShare_Setup.exe`): Inno Setup installer, installs per user into `%LOCALAPPDATA%\localShare`.
+- **Windows Portable** (`localShare-win-x64-Portable.zip`): self-contained executable, no installation required.
+- **Linux** (`localShare-linux-x64.zip`) and **macOS** (`localShare-mac-x64.zip`): self-contained portable executables.
+- **checksums-*.txt**: SHA256 checksums for verifying each asset.
 
 ## How to Use
 
@@ -39,4 +42,4 @@ This project is built using:
 
 ## License
 
-This project is open-source. Feel free to contribute, fork, or report issues.
+This project is licensed under the [GNU General Public License v3.0](LICENSE). Feel free to contribute, fork, or report issues.
