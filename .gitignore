@@ -179,3 +179,14 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# AI-generated working files (never commit)
+PROGRESS_TRACKER.md
+ai_changes.md
+project_analysis_report.md
+
+# Build outputs
+nuitka-crash-report.xml
+app/
+build/
+dist/
