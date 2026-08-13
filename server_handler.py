@@ -2,134 +2,13 @@
 import os
 import socket
 import mimetypes
-from flask import Flask, render_template_string, request, send_from_directory, Response, abort, url_for
+from flask import Flask, render_template_string, request, send_from_directory, Response, abort, url_for, make_response
 from werkzeug.utils import secure_filename
 from PySide6.QtCore import QObject, Signal
 import threading
 
-# --- TEMPLATE REFACTORED FOR JINJA2 ---
-# Using {{ variables }} for dynamic content and {% raw %} for CSS/JS blocks
-# to prevent conflicts with Jinja2 syntax.
-HTML_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <style>{% raw %}
-        :root {
-            --bg-color: #f8f9fa; --text-color: #212529;
-            --container-bg: #ffffff; --border-color: #dee2e6;
-            --primary-color: #007bff; --primary-hover: #0056b3;
-            --shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
-        }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-            margin: 0; padding: 1.5em; background: var(--bg-color); color: var(--text-color);
-        }
-        .container { 
-            max-width: 900px; margin: 0 auto; background: var(--container-bg); 
-            border: 1px solid var(--border-color); border-radius: 8px; 
-            padding: 1.5em 2em; box-shadow: var(--shadow);
-        }
-        h1, h2 { border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
-        form { margin-bottom: 1.5em; }
-        input[type=file] { 
-            border: 1px solid var(--border-color); padding: 10px; border-radius: 4px; 
-            width: 100%; box-sizing: border-box;
-        }
-        input[type=submit] { 
-            background: var(--primary-color); color: white; border: none; 
-            padding: 12px 18px; border-radius: 4px; cursor: pointer; 
-            font-size: 16px; font-weight: 500; margin-top: 10px;
-        }
-        input[type=submit]:hover { background: var(--primary-hover); }
-        .file-header { display: flex; justify-content: space-between; align-items: center; }
-        #toggleView { 
-            background: #6c757d; color: white; border: none;
-            padding: 8px 12px; border-radius: 4px; cursor: pointer;
-        }
-        #toggleView:hover { background: #5a6268; }
-        #file-list ul { list-style: none; padding: 0; margin-top: 1em; }
-        #file-list.list-view li a {
-            display: flex; align-items: center; padding: 12px 15px; margin-bottom: 5px; 
-            border: 1px solid var(--border-color); border-radius: 4px;
-            text-decoration: none; color: var(--primary-color);
-            background: #fff; transition: background 0.2s;
-        }
-        #file-list.list-view li a:hover { background: #f1f3f5; }
-        #file-list.grid-view ul {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); grid-gap: 15px;
-        }
-        #file-list.grid-view li a {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 120px; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px;
-            text-decoration: none; color: #333; background: #fff; text-align: center;
-            word-break: break-all;
-        }
-        #file-list.grid-view li a:hover { box-shadow: var(--shadow); }
-        .icon::before { 
-            font-size: 24px; margin-right: 10px; font-family: 'Arial', sans-serif;
-        }
-        #file-list.grid-view .icon::before { font-size: 40px; margin-right: 0; margin-bottom: 10px; }
-        .icon-file::before { content: '📄'; } .icon-video::before { content: '🎬'; }
-        .icon-audio::before { content: '🎵'; } .icon-image::before { content: '🖼️'; }
-        .icon-archive::before { content: '📦'; } .icon-text::before { content: '📝'; }
-    {% endraw %}</style>
-</head>
-<body>
-    <div class="container">
-        <h1>{{ title }}</h1>
-        
-        {% if allow_upload %}
-        <div class="upload-container">
-            <h2>Upload File</h2>
-            <form method="post" enctype="multipart/form-data">
-                <input type="file" name="filetoupload" required>
-                <input type="submit" value="Upload">
-            </form>
-        </div>
-        {% endif %}
-        
-        <div class="file-header">
-            <h2>Shared Files</h2>
-            <button id="toggleView" title="Toggle View">Toggle View</button>
-        </div>
-        <div id="file-list" class="list-view">
-            <ul>
-                {% for file in files %}
-                    <li><a href="{{ url_for('download_file', filename=file.name) }}"><span class="icon {{ file.icon }}"></span>{{ file.name }}</a></li>
-                {% else %}
-                    <li>No files found.</li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-    
-    <script>{% raw %}
-        document.getElementById('toggleView').addEventListener('click', function() {
-            var list = document.getElementById('file-list');
-            if (list.classList.toggle('grid-view', list.classList.contains('list-view'))) {
-                list.classList.remove('list-view');
-                localStorage.setItem('viewMode', 'grid');
-            } else {
-                list.classList.add('list-view');
-                localStorage.setItem('viewMode', 'list');
-            }
-        });
-        (function() {
-            var view = localStorage.getItem('viewMode');
-            if (view === 'grid') {
-                var list = document.getElementById('file-list');
-                list.classList.remove('list-view');
-                list.classList.add('grid-view');
-            }
-        })();
-    {% endraw %}</script>
-</body>
-</html>
-"""
+# The browser page template lives in web_template.py (HTML_TEMPLATE).
+from web_template import HTML_TEMPLATE
 
 class WorkerSignals(QObject):
     server_started = Signal(str, int)
@@ -237,11 +116,14 @@ class ServerThread(threading.Thread):
             except Exception as e:
                 self.signals.log_message.emit(f"[Error] Could not list files: {e}")
 
-            return render_template_string(HTML_TEMPLATE, 
+            response = make_response(render_template_string(HTML_TEMPLATE, 
                 title="localShare", 
                 allow_upload=app.config['ALLOW_UPLOAD'], 
                 files=file_info_list
-            )
+            ))
+            response.headers['Cache-Control'] = 'no-store'
+            response.headers['Pragma'] = 'no-cache'
+            return response
 
         @app.route('/files/<path:filename>')
         def download_file(filename):
