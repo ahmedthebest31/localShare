@@ -1,21 +1,39 @@
 # main.py
-import sys
+import io
 import json
 import os
-import qrcode 
-import io 
+import sys
 from pathlib import Path
 
-from server_handler import ServerThread
-
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel,
-    QMessageBox, QDialog, QHBoxLayout, QPushButton,
-    QGridLayout, QLineEdit, QCheckBox, QSpinBox, QPlainTextEdit,
-    QFileDialog
+import qrcode
+from PySide6.QtCore import QCoreApplication, QStandardPaths, Qt, QUrl
+from PySide6.QtGui import (
+    QActionGroup,
+    QDesktopServices,
+    QGuiApplication,
+    QIcon,
+    QImage,
+    QPixmap,
 )
-from PySide6.QtGui import QDesktopServices, QActionGroup, QPixmap, QImage, QGuiApplication, QIcon
-from PySide6.QtCore import QCoreApplication, Qt, QUrl, QStandardPaths
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDialog,
+    QFileDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPlainTextEdit,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+    QWidget,
+)
+
+from server_handler import ServerThread
 
 # --- 1. Constants ---
 APP_VERSION = "1.0.0"
@@ -91,7 +109,7 @@ def save_config(config):
         print(f"[Error] Could not save config to {CONFIG_FILE}: {e}")
 
 def load_translations():
-    global TRANSLATIONS, CURRENT_LANG
+    global CURRENT_LANG
     if not os.path.exists(LANGUAGES_DIR):
         print("Warning: 'languages' directory not found.")
         return

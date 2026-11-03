@@ -1,14 +1,23 @@
 # server_handler.py
+import mimetypes
 import os
 import socket
-import mimetypes
-from flask import Flask, render_template_string, request, send_from_directory, Response, abort
-from werkzeug.utils import secure_filename
-from PySide6.QtCore import QObject, Signal
 import threading
+
+from flask import (
+    Flask,
+    Response,
+    abort,
+    render_template_string,
+    request,
+    send_from_directory,
+)
+from PySide6.QtCore import QObject, Signal
+from werkzeug.utils import secure_filename
 
 # The browser page template lives in web_template.py (HTML_TEMPLATE).
 from web_template import HTML_TEMPLATE
+
 
 class WorkerSignals(QObject):
     server_started = Signal(str, int)
@@ -206,13 +215,13 @@ class ServerThread(threading.Thread):
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.connect(("8.8.8.8", 80))
                 candidates.add(s.getsockname()[0])
-        except Exception:
+        except Exception:  # noqa: S110
             pass
         try:
             hostname = socket.gethostname()
             for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
                 candidates.add(info[4][0])
-        except Exception:
+        except Exception:  # noqa: S110
             pass
         for ip in sorted(candidates):
             if not ip.startswith("127.") and not ip.startswith("169.254."):

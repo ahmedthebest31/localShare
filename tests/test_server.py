@@ -2,6 +2,7 @@
 import io
 import os
 import tempfile
+
 import pytest
 
 from server_handler import ServerThread, unique_filename

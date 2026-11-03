@@ -26,6 +26,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 py-modules = ["main", "server_handler", "update_manager", "web_template"]
 
+[tool.ruff.lint]
+ignore = ["BLE001"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 
@@ -37,4 +40,5 @@ exclude-newer = "7 days"
 dev = [
     "pyinstaller",
     "pytest>=9.1.1",
+    "ruff>=0.8.0",
 ]

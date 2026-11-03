@@ -6,12 +6,12 @@ import json
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 import requests
-
-from PySide6.QtCore import QCoreApplication, QObject, QThread, Qt, Signal
+from PySide6.QtCore import QCoreApplication, QObject, Qt, QThread, Signal
 from PySide6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -53,7 +53,7 @@ class VersionChecker(QThread):
     no_update = Signal()
     error = Signal(str)
 
-    def __init__(self, current_version: str, parent: Optional[QObject] = None) -> None:
+    def __init__(self, current_version: str, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.current_version = current_version
 
@@ -79,7 +79,7 @@ class Downloader(QThread):
     finished = Signal(str)
     error = Signal(str)
 
-    def __init__(self, url: str, parent: Optional[QObject] = None) -> None:
+    def __init__(self, url: str, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self.url = url
 
@@ -109,7 +109,7 @@ class Downloader(QThread):
 
 
 class UpdateDialog(QDialog):
-    def __init__(self, new_version: str, whats_new: str, tr_func: Callable, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, new_version: str, whats_new: str, tr_func: Callable, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.tr_func = tr_func
         self.setWindowTitle(_tr(tr_func, "dialog_title_update_available", "Update Available"))
@@ -182,9 +182,9 @@ class UpdateManager(QObject):
         self.save_config = save_config
         self.current_version = current_version
         self.silent: bool = False
-        self.progress_dialog: Optional[QProgressDialog] = None
-        self.checker_thread: Optional[VersionChecker] = None
-        self.downloader_thread: Optional[Downloader] = None
+        self.progress_dialog: QProgressDialog | None = None
+        self.checker_thread: VersionChecker | None = None
+        self.downloader_thread: Downloader | None = None
 
     def check_for_updates(self, silent: bool = True) -> None:
         self.silent = silent
@@ -223,7 +223,7 @@ class UpdateManager(QObject):
             self.progress_dialog.close()
             self.progress_dialog = None
 
-    def _on_update_available(self, data: Dict[str, Any]) -> None:
+    def _on_update_available(self, data: dict[str, Any]) -> None:
         new_version = data.get("version", "")
 
         if self.silent:

@@ -191,4 +191,4 @@ project_analysis_report.md
 nuitka-crash-report.xml
 app/
 build/
-dist/
+dist/ruff.json
