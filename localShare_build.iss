@@ -1,6 +1,7 @@
 #define MyAppName "localShare"
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "Ahmed Samy Elkhouly"
+#define MyAppPublisherEmail "ahmedthebest31@gmail.com"
 #define MyAppURL "https://github.com/ahmedthebest31/localShare"
 #define MyAppExeName "localShare.exe"
 
@@ -9,6 +10,7 @@ AppId={{0DD2ED7A-E2A8-4E52-A10F-01E89B60D970}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppPublisherEmail={#MyAppPublisherEmail}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}

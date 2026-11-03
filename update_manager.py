@@ -4,6 +4,7 @@
 # custom compare_versions, and a silent Inno Setup install (/VERYSILENT) after download.
 import json
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -187,6 +188,15 @@ class UpdateManager(QObject):
 
     def check_for_updates(self, silent: bool = True) -> None:
         self.silent = silent
+
+        if sys.platform != "win32":
+            if not silent:
+                QMessageBox.information(
+                    self.parent_widget,
+                    _tr(self.tr, "dialog_title_no_update", "No Update"),
+                    "Automatic updates are currently available on Windows only. Please download the latest release manually.",
+                )
+            return
 
         if not silent:
             self.progress_dialog = QProgressDialog(

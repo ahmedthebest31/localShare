@@ -2,7 +2,7 @@
 import os
 import socket
 import mimetypes
-from flask import Flask, render_template_string, request, send_from_directory, Response, abort, url_for, make_response
+from flask import Flask, render_template_string, request, send_from_directory, Response, abort
 from werkzeug.utils import secure_filename
 from PySide6.QtCore import QObject, Signal
 import threading
@@ -63,13 +63,19 @@ class ServerThread(threading.Thread):
 
         def get_file_icon(filename):
             mime_type, _ = mimetypes.guess_type(filename)
-            if not mime_type: return "icon-file"
+            if not mime_type:
+                return "icon-file"
             main_type = mime_type.split('/')[0]
-            if main_type == "video": return "icon-video"
-            if main_type == "audio": return "icon-audio"
-            if main_type == "image": return "icon-image"
-            if main_type == "text": return "icon-text"
-            if "zip" in mime_type or "rar" in mime_type: return "icon-archive"
+            if main_type == "video":
+                return "icon-video"
+            if main_type == "audio":
+                return "icon-audio"
+            if main_type == "image":
+                return "icon-image"
+            if main_type == "text":
+                return "icon-text"
+            if "zip" in mime_type or "rar" in mime_type:
+                return "icon-archive"
             return "icon-file"
 
         @app.route('/', methods=['GET', 'POST'])
@@ -100,12 +106,13 @@ class ServerThread(threading.Thread):
                         final_filename = filename
 
                     saved_name = unique_filename(app.config['SHARE_PATH'], final_filename)
-                    upload_path_abs = os.path.abspath(os.path.join(app.config['SHARE_PATH'], saved_name))
-                    if not upload_path_abs.startswith(os.path.abspath(app.config['SHARE_PATH'])):
+                    share_path_real = os.path.realpath(app.config['SHARE_PATH'])
+                    upload_path_real = os.path.realpath(os.path.join(share_path_real, saved_name))
+                    if upload_path_real == share_path_real or not upload_path_real.startswith(share_path_real + os.sep):
                         self.signals.log_message.emit(f"[Security] Blocked potential directory traversal upload from {user} for filename '{saved_name}'")
                         abort(403)
 
-                    file.save(upload_path_abs)
+                    file.save(upload_path_real)
                     self.signals.log_message.emit(f"[Upload] Success: '{saved_name}' from {user}")
 
             file_info_list = []
@@ -116,11 +123,12 @@ class ServerThread(threading.Thread):
             except Exception as e:
                 self.signals.log_message.emit(f"[Error] Could not list files: {e}")
 
-            response = make_response(render_template_string(HTML_TEMPLATE, 
-                title="localShare", 
-                allow_upload=app.config['ALLOW_UPLOAD'], 
+            html = render_template_string(HTML_TEMPLATE,
+                title="localShare",
+                allow_upload=app.config['ALLOW_UPLOAD'],
                 files=file_info_list
-            ))
+            )
+            response = Response(html, mimetype="text/html")
             response.headers['Cache-Control'] = 'no-store'
             response.headers['Pragma'] = 'no-cache'
             return response
@@ -128,13 +136,17 @@ class ServerThread(threading.Thread):
         @app.route('/files/<path:filename>')
         def download_file(filename):
             user = get_username_or_auth_response()
-            if isinstance(user, Response): return user
+            if isinstance(user, Response):
+                return user
             
-            share_path_abs = os.path.abspath(app.config['SHARE_PATH'])
-            requested_path_abs = os.path.abspath(os.path.join(share_path_abs, filename))
+            share_path_real = os.path.realpath(app.config['SHARE_PATH'])
+            requested_path_real = os.path.realpath(os.path.join(share_path_real, filename))
 
-            if not requested_path_abs.startswith(share_path_abs):
+            if requested_path_real == share_path_real or not requested_path_real.startswith(share_path_real + os.sep):
                 self.signals.log_message.emit(f"[Security] Path traversal attempt blocked from {request.remote_addr} for '{filename}'")
+                abort(404)
+
+            if not os.path.isfile(requested_path_real):
                 abort(404)
 
             self.signals.log_message.emit(f"[Access] ({user}) {request.remote_addr} - GET /files/{filename}")

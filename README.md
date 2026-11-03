@@ -57,7 +57,7 @@ Built with:
 
 ## 🔄 Automatic Updates
 
-localShare checks for updates on startup. When a new version is available, you can update with one click: the installer downloads automatically and installs silently, then the app restarts.
+localShare checks for updates on startup. On Windows, when a new version is available, you can update with one click: the installer downloads automatically and installs silently, then the app restarts. On macOS and Linux, automatic in-app updates are not available yet; download the latest release manually from the Releases page.
 
 ## 📄 License
 

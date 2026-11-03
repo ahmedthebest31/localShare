@@ -6,15 +6,15 @@ import qrcode
 import io 
 from pathlib import Path
 
-from server_handler import ServerThread, WorkerSignals
+from server_handler import ServerThread
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel,
-    QMessageBox, QDialog, QHBoxLayout, QPushButton, QMenuBar,
+    QMessageBox, QDialog, QHBoxLayout, QPushButton,
     QGridLayout, QLineEdit, QCheckBox, QSpinBox, QPlainTextEdit,
-    QFileDialog, QSizePolicy 
+    QFileDialog
 )
-from PySide6.QtGui import QDesktopServices, QAction, QActionGroup, QPixmap, QImage, QGuiApplication, QIcon
+from PySide6.QtGui import QDesktopServices, QActionGroup, QPixmap, QImage, QGuiApplication, QIcon
 from PySide6.QtCore import QCoreApplication, Qt, QUrl, QStandardPaths
 
 # --- 1. Constants ---
@@ -132,7 +132,7 @@ class AboutDialog(QDialog):
         layout.addWidget(description_label)
         developer_label = QLabel(f"{tr('about_dialog_developer')}: Ahmed Samy")
         layout.addWidget(developer_label)
-        email_label = QLabel(f'<a href="mailto:ahmedthebest31@gmail.com">ahmedthebest31@gmail.com</a>')
+        email_label = QLabel('<a href="mailto:ahmedthebest31@gmail.com">ahmedthebest31@gmail.com</a>')
         email_label.setOpenExternalLinks(True)
         layout.addWidget(email_label)
         layout.addStretch()
